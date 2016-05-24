@@ -1,7 +1,15 @@
 #!/usr/bin/python
 
-import os
-import sys
+import os, sys, getpass
+
+#   Make sure the script is being run as root
+whoami = getpass.getuser()
+
+if whoami != 'root':
+    print('This script must be run as root')
+    sys.exit()
+else:
+    print('Running as root... OK')
 
 #
 #   Config
@@ -29,8 +37,8 @@ groups = []
 #
 def passwd():
     # Read in passwd data for both files
-    master = set(line.strip('\n') for line in open('./tmp/passwd.master'))
-    node = set(line.strip('\n') for line in open('./tmp/passwd.node'))
+    master = set(line.strip('\n') for line in open('passwd.master'))
+    node = set(line.strip('\n') for line in open('passwd.node'))
 
     # Remove entries from node where ID in range UID_MIN to UID_MAX
     for n in node.copy():
@@ -50,7 +58,7 @@ def passwd():
 
     # Write out the new passwd file
     if GENERATE_FILES:
-        f = open('./tmp/passwd.node', 'w')
+        f = open('passwd.node', 'w')
         f.truncate()
         for l in node:
             if TERMINAL_OUT:
@@ -72,20 +80,20 @@ def shadow():
     shadow = []
     # Get the lines from the node's shadow file that are not users we need to change.
     #   Add them to the new shadow file array
-    for line in open('./tmp/shadow.node'):
+    for line in open('shadow.node'):
         line = line.strip('\n')
         if line.split(':')[0] not in users:
             shadow.append(line)
     # Get the lines from the master's shadow file that ARE users we need to change.
     #   Add them to the new shadow file array
-    for line in open('./tmp/shadow.master'):
+    for line in open('shadow.master'):
         line = line.strip('\n')
         if line.split(':')[0] in users:
             shadow.append(line)
 
     # Write out the new shadow file for the nodes
     if GENERATE_FILES:
-        f = open('./tmp/shadow.node', 'w')
+        f = open('shadow.node', 'w')
         f.truncate()
         for l in shadow:
             if TERMINAL_OUT:
@@ -103,8 +111,8 @@ def shadow():
 #   Create a new group file
 #
 def group():
-    master = [line.strip('\n') for line in open('./tmp/group.master')]
-    node = [line.strip('\n') for line in open('./tmp/group.node')]
+    master = [line.strip('\n') for line in open('group.master')]
+    node = [line.strip('\n') for line in open('group.node')]
     # New group file
     group = []
 
@@ -120,7 +128,7 @@ def group():
 
     # Write out the new shadow file for the nodes
     if GENERATE_FILES:
-        f = open('./tmp/group.node', 'w')
+        f = open('group.node', 'w')
         f.truncate()
         for l in group:
             if TERMINAL_OUT:
@@ -143,20 +151,20 @@ def gshadow():
 
     # Get the lines from the node's gshadow file that are not users we need to change.
     #   Add them to the new gshadow file array
-    for line in open('./tmp/gshadow.node'):
+    for line in open('gshadow.node'):
         line = line.strip('\n')
         if line.split(':')[0] not in groups:
             gshadow.append(line)
     # Get the lines from the master's gshadow file that ARE users we need to change.
     #   Add them to the new gshadow file array
-    for line in open('./tmp/gshadow.master'):
+    for line in open('gshadow.master'):
         line = line.strip('\n')
         if line.split(':')[0] in groups:
             gshadow.append(line)
 
     # Write out the new gshadow file for the nodes
     if GENERATE_FILES:
-        f = open('./tmp/gshadow.node', 'w')
+        f = open('gshadow.node', 'w')
         f.truncate()
         for l in gshadow:
             f.write(l)
@@ -177,18 +185,18 @@ def sync():
 
     # Fetch files from first node, place in workdir
     print("Fetching local user data...")
-    os.system("cp /etc/passwd ./tmp/passwd.master")
-    os.system("cp /etc/shadow ./tmp/shadow.master")
-    os.system("cp /etc/group ./tmp/group.master")
-    os.system("cp /etc/gshadow ./tmp/gshadow.master")
+    os.system("cp /etc/passwd passwd.master")
+    os.system("cp /etc/shadow shadow.master")
+    os.system("cp /etc/group group.master")
+    os.system("cp /etc/gshadow gshadow.master")
 
     for node in nodelist:
         # Get data for this node
         print("Fetching user data for %s..." % node)
-        os.system("scp root@%s:/etc/passwd ./tmp/passwd.node" % node)
-        os.system("scp root@%s:/etc/shadow ./tmp/shadow.node" % node)
-        os.system("scp root@%s:/etc/group ./tmp/group.node" % node)
-        os.system("scp root@%s:/etc/gshadow ./tmp/gshadow.node" % node)
+        os.system("scp root@%s:/etc/passwd passwd.node" % node)
+        os.system("scp root@%s:/etc/shadow shadow.node" % node)
+        os.system("scp root@%s:/etc/group group.node" % node)
+        os.system("scp root@%s:/etc/gshadow gshadow.node" % node)
 
         # Make modifications to each local node file
         print("Updating user data for %s..." % node)
@@ -199,14 +207,15 @@ def sync():
 
         # SCP the newly synced data to the remote node
         print("Sending updated user data to %s" % node)
-        os.system("scp ./tmp/passwd.node root@%s:/etc/passwd" % node)
-        os.system("scp ./tmp/shadow.node root@%s:/etc/shadow" % node)
-        os.system("scp ./tmp/group.node root@%s:/etc/group" % node)
-        os.system("scp ./tmp/gshadow.node root@%s:/etc/gshadow" % node)
+        os.system("scp passwd.node root@%s:/etc/passwd" % node)
+        os.system("scp shadow.node root@%s:/etc/shadow" % node)
+        os.system("scp group.node root@%s:/etc/group" % node)
+        os.system("scp gshadow.node root@%s:/etc/gshadow" % node)
 
     # clean up files
     print("Cleaning up...")
-    os.system("rm ./tmp/*")
+    os.system("rm *.master")
+    os.system("rm *.node")
     print("Done.\n")
 
 sync()
