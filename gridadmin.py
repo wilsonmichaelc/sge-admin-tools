@@ -8,20 +8,21 @@ if whoami != 'root':
     sys.exit()
 
 # Should be resolvable via hosts file
-HEAD_NODE = "yourheadnode" 
+HEAD_NODE = "yourhostname"
 
 # Directory where you archive old users home dirs: NO TRAILING SLASH
 archivedir = "/home/archive"
 
 # Min/Max UID & GID's
-GID_MIN = 1500
-GID_MAX = 1600
-UID_MIN = 1600
-UID_MAX = 1700
+GID_MIN = 2000
+GID_MAX = 4000
+UID_MIN = 2000
+UID_MAX = 3000
+PROJECT_GID_MIN = 3000
 
 # Interface that nodes use for external connection.
 # I leave these turned off unless needed. This script will bring up/take down external interfaces
-EXTERNAL_INTERFACE = "eth0"
+EXTERNAL_INTERFACE = "ethX"
 
 # The menu
 menu = """
@@ -31,17 +32,18 @@ This script helps you perform some common tasks on the nodes via ssh remote exec
 
 What would you like to do?
 
-1.  Update/Upgrade Nodes
-2.  Install a package from apt on Nodes
-3.  Execute an R Script on Nodes(The script must specify a CRAN mirror)
-4.  Add a system user to all nodes (including head node)
-5.  Completely Remove a System User
-6.  Add a group for a project
-7.  Add existing user to a supplementary group
-8.  Execute an arbitrary command on all nodes
-9.  Restart Ganglia Monitor on all nodes
-10.  Reboot the Nodes
-0.  Quit.
+1.   Update/Upgrade Nodes
+2.   Install a package from apt on Nodes
+3.   Execute an R Script on Nodes(The script must specify a CRAN mirror)
+4.   Add a system user to all nodes (including head node)
+5.   Completely Remove a System User
+6.   Add a group
+7.   Remove a group
+8.   Add existing user to a supplementary group
+9.   Execute an arbitrary command on all nodes
+10.  Restart Ganglia Monitor on all nodes
+11.  Reboot the Nodes
+0.   Quit.
 """
 
 # Execute a command on each node
@@ -53,7 +55,7 @@ def execute(command):
         out, err = proc.communicate()
         if proc.returncode != 0:
             print("Failed to execute on %! \nERROR\n%s" % (node, err))
-            
+
 def execute_arb(command):
     for node in nodes:
         print("Executing '%s' on %s" % (command, node))
@@ -134,9 +136,11 @@ def getNextUID():
     cmd = """awk -F: '{uid[$3]=1}END{for(x=%s; x<%s; x++) {if(uid[x] != ""){}else{print x; exit;}}}' /etc/passwd""" % (UID_MIN, UID_MAX)
     uid = subprocess.check_output(cmd, shell=True).decode('ascii').strip()
     return uid
-    
+
 # Get the next available UID based on the range provided above
-def getNextGID():
+def getNextGID(project):
+    if project:
+        GID_MIN = PROJECT_GID_MIN
     cmd = """awk -F: '{gid[$3]=1}END{for(x=%s; x<%s; x++) {if(gid[x] != ""){}else{print x; exit;}}}' /etc/group""" % (GID_MIN, GID_MAX)
     gid = subprocess.check_output(cmd, shell=True).decode('ascii').strip()
     return gid
@@ -276,7 +280,11 @@ while selection:
     elif selection == "6":
         print("\nAdd A New Group To All Nodes (including head node)\n")
         groupname = input("Group Name: ")
-        gid = getNextGID()
+        project = input("Is this group for a project (Y/n)? ")
+        if project == "y" or project == "Y":
+            gid = getNextGID(True)
+        else:
+            gid = getNextGID(None)
         print("\nWARNING!!!\n")
         print("You are about to add the following group all the nodes.")
         print("Group: %s:%s" % (groupname, gid))
@@ -289,9 +297,26 @@ while selection:
             print("CANCELED. Returning to menu...")
             time.sleep(2)
     #
-    #   Add existing user to existing group
+    #   Remove a group
     #
     elif selection == "7":
+        print("\nRemove A Group From All Nodes (including head node)\n")
+        groupname = input("Group Name: ")
+        print("\nWARNING!!!\n")
+        print("You are about to remove the following group all the nodes.")
+        print("Group: %s" % groupname)
+        confirm = input("Are you sure you want to continue (y/N)? ")
+        if confirm == "y" or confirm == "Y":
+            command = "groupdel %s" % groupname
+            execute(command)
+            time.sleep(2)
+        else:
+            print("CANCELED. Returning to menu...")
+            time.sleep(2)
+    #
+    #   Add existing user to existing group
+    #
+    elif selection == "8":
         print("\nAdd Existing User To Group On All Nodes (including head node)\n")
         username = input("Username: ")
         avail_grps = "Available Groups: "
@@ -316,7 +341,7 @@ while selection:
     #
     #   Execute arbitrary command on all nodes
     #
-    elif selection == "8":
+    elif selection == "9":
         print("\nExecute an arbitrary command on all nodes\n")
         print("\nWARNING!!!\n")
         print("\nUSE THIS VERY CAREFULLY\n")
@@ -334,7 +359,7 @@ while selection:
     #
     #   Restart ganglia monitor on all nodes
     #
-    elif selection == "9":
+    elif selection == "10":
         print("\nRestart Ganglia Monitor On All Nodes\n")
         print("You are about to restart the ganglia monitor service on all the nodes.")
         confirm = input("Are you sure you want to continue (y/N)? ")
@@ -347,7 +372,7 @@ while selection:
     #
     #   Reboot all nodes
     #
-    elif selection == "10":
+    elif selection == "11":
         print("\nReboot All The Nodes\n")
         print("\nWARNING!!!\n")
         print("You are about to reboot all the nodes.")
