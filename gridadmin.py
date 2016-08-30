@@ -291,6 +291,7 @@ while selection:
         confirm = input("Are you sure you want to continue (y/N)? ")
         if confirm == "y" or confirm == "Y":
             command = "groupadd -g %s %s" % (gid, groupname)
+            print("Adding group to %" % HEAD_NODE)
             os.system(command)
             execute(command)
             time.sleep(2)
@@ -309,6 +310,7 @@ while selection:
         confirm = input("Are you sure you want to continue (y/N)? ")
         if confirm == "y" or confirm == "Y":
             command = "groupdel %s" % groupname
+            print("Removing group from %" % HEAD_NODE)
             os.system(command)
             execute(command)
             time.sleep(2)
@@ -335,6 +337,8 @@ while selection:
         confirm = input("Are you sure you want to continue (y/N)? ")
         if confirm == "y" or confirm == "Y":
             command = "usermod -a -G %s %s" % (gid, username)
+            print("Executing on %" % HEAD_NODE)
+            os.system(command)
             execute(command)
             time.sleep(2)
         else:
