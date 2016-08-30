@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import subprocess, sys, os, time, getpass
 
 #   Make sure the script is being run as root
