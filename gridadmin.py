@@ -54,7 +54,7 @@ def execute(command):
         proc = subprocess.Popen(["ssh", "%s" % ip, command], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = proc.communicate()
         if proc.returncode != 0:
-            print("Failed to execute on %! \nERROR\n%s" % (node, err))
+            print("Failed to execute on %s \nERROR\n%s" % (node, err))
 
 def execute_arb(command):
     for node in nodes:
@@ -63,7 +63,7 @@ def execute_arb(command):
         proc = subprocess.Popen(["ssh", "%s" % ip, command], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = proc.communicate()
         if proc.returncode != 0:
-            print("Failed to execute on %! \nERROR\n%s" % (node, err))
+            print("Failed to execute on %s \nERROR\n%s" % (node, err))
         else:
             print("Response: %s" % out)
 
@@ -74,13 +74,13 @@ def ifup():
         proc = subprocess.Popen(["ssh", "%s" % ip, "ifup %s" % EXTERNAL_INTERFACE], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = proc.communicate()
         if proc.returncode != 0:
-            print("Failed to execute on %! \nERROR\n%s" % (node, err))
+            print("Failed to execute on %s! \nERROR\n%s" % (node, err))
         else:
             command = "ifconfig %s | grep 'inet addr' | cut -d':' -f2 | cut -d' ' -f1" % EXTERNAL_INTERFACE
             proc = subprocess.Popen(["ssh", "%s" % ip, command], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out, err = proc.communicate()
             if proc.returncode != 0:
-                print("Failed to execute on %s! \nERROR\n%s" % (ip, err))
+                print("Failed to execute on %s \nERROR\n%s" % (ip, err))
             else:
                 print("%s %s up, ip: %s" % (node, EXTERNAL_INTERFACE, out.decode('ascii').strip()))
 
@@ -91,7 +91,7 @@ def ifdown():
         proc = subprocess.Popen(["ssh", "%s" % ip, "ifdown %s" % EXTERNAL_INTERFACE], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = proc.communicate()
         if proc.returncode != 0:
-            print("Failed to execute on %! \nERROR\n%s" % (node, err))
+            print("Failed to execute on %s! \nERROR\n%s" % (node, err))
         else:
             print("%s: %s down" % (node, EXTERNAL_INTERFACE))
 
@@ -107,7 +107,7 @@ def addSystemUser(fullname, username, uid, gid):
         proc = subprocess.Popen(["ssh", ip, command], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = proc.communicate()
         if proc.returncode != 0:
-            print("Failed to execute on %! \nERROR\n%s" % (node, err))
+            print("Failed to execute on %s! \nERROR\n%s" % (node, err))
 
 # Remove a system user and optionally archive the home directory before removing it
 def removeSystemUser(username, archivedir):
@@ -129,7 +129,7 @@ def removeSystemUser(username, archivedir):
         proc = subprocess.Popen(["ssh", ip, command], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = proc.communicate()
         if proc.returncode != 0:
-            print("Failed to execute on %! \nERROR\n%s" % (node, err))
+            print("Failed to execute on %s! \nERROR\n%s" % (node, err))
 
 # Get the next available UID based on the range provided above
 def getNextUID():
@@ -291,6 +291,7 @@ while selection:
         confirm = input("Are you sure you want to continue (y/N)? ")
         if confirm == "y" or confirm == "Y":
             command = "groupadd -g %s %s" % (gid, groupname)
+            os.system(command)
             execute(command)
             time.sleep(2)
         else:
@@ -308,6 +309,7 @@ while selection:
         confirm = input("Are you sure you want to continue (y/N)? ")
         if confirm == "y" or confirm == "Y":
             command = "groupdel %s" % groupname
+            os.system(command)
             execute(command)
             time.sleep(2)
         else:
