@@ -36,9 +36,11 @@ What would you like to do?
 3.  Execute an R Script on Nodes(The script must specify a CRAN mirror)
 4.  Add a system user to all nodes (including head node)
 5.  Completely Remove a System User
-6.  Execute an arbitrary command on all nodes
-7.  Restart Ganglia Monitor on all nodes
-8.  Reboot the Nodes
+6.  Add a group for a project
+7.  Add existing user to a supplementary group
+8.  Execute an arbitrary command on all nodes
+9.  Restart Ganglia Monitor on all nodes
+10.  Reboot the Nodes
 0.  Quit.
 """
 
@@ -132,6 +134,12 @@ def getNextUID():
     cmd = """awk -F: '{uid[$3]=1}END{for(x=%s; x<%s; x++) {if(uid[x] != ""){}else{print x; exit;}}}' /etc/passwd""" % (UID_MIN, UID_MAX)
     uid = subprocess.check_output(cmd, shell=True).decode('ascii').strip()
     return uid
+    
+# Get the next available UID based on the range provided above
+def getNextGID():
+    cmd = """awk -F: '{gid[$3]=1}END{for(x=%s; x<%s; x++) {if(gid[x] != ""){}else{print x; exit;}}}' /etc/group""" % (GID_MIN, GID_MAX)
+    gid = subprocess.check_output(cmd, shell=True).decode('ascii').strip()
+    return gid
 
 # Get a list of groups from the range provided above
 def getGroups():
@@ -224,7 +232,8 @@ while selection:
         print("\nAdd A System User To All Nodes (including head node)\n")
         fullname = input("Full Name: ")
         username = input("Username (lowercase recommended): ")
-        uid = getNextUID()
+        print("\nAdd A System User To All Nodes (including head node)\n")
+        fullname = input("Full Name: ")
         avail_grps = "Available Groups: "
         for group, gid in groups.items():
             avail_grps = "%s %s=%s" % (avail_grps, group, gid)
@@ -262,9 +271,52 @@ while selection:
             print("CANCELED. Returning to menu...")
             time.sleep(2)
     #
-    #   Execute arbitrary command on all nodes
+    #   Add a new group
     #
     elif selection == "6":
+        print("\nAdd A New Group To All Nodes (including head node)\n")
+        groupname = input("Group Name: ")
+        gid = getNextGID()
+        print("\nWARNING!!!\n")
+        print("You are about to add the following group all the nodes.")
+        print("Group: %s:%s" % (groupname, gid))
+        confirm = input("Are you sure you want to continue (y/N)? ")
+        if confirm == "y" or confirm == "Y":
+            command = "groupadd -g %s %s" % (gid, groupname)
+            execute(command)
+            time.sleep(2)
+        else:
+            print("CANCELED. Returning to menu...")
+            time.sleep(2)
+    #
+    #   Add existing user to existing group
+    #
+    elif selection == "7":
+        print("\nAdd Existing User To Group On All Nodes (including head node)\n")
+        username = input("Username: ")
+        avail_grps = "Available Groups: "
+        groups = getGroups()
+        for group, gid in groups.items():
+            avail_grps = "%s %s=%s" % (avail_grps, group, gid)
+        print(avail_grps)
+        gid = input("Select a GID (eg. 1500): ")
+        while not gid in groups.values():
+            print("Not a valid GID.")
+            gid = input("Select a GID (eg. 1500): ")
+        print("\nWARNING!!!\n")
+        print("You are about to add %s as supplementary group for %s on all the nodes." % (gid, username))
+        confirm = input("Are you sure you want to continue (y/N)? ")
+        if confirm == "y" or confirm == "Y":
+            command = "usermod -a -G %s %s" % (gid, username)
+            execute(command)
+            time.sleep(2)
+        else:
+            print("CANCELED. Returning to menu...")
+            time.sleep(2)
+    #
+    #   Execute arbitrary command on all nodes
+    #
+    elif selection == "8":
         print("\nExecute an arbitrary command on all nodes\n")
         print("\nWARNING!!!\n")
         print("\nUSE THIS VERY CAREFULLY\n")
@@ -282,7 +334,7 @@ while selection:
     #
     #   Restart ganglia monitor on all nodes
     #
-    elif selection == "7":
+    elif selection == "9":
         print("\nRestart Ganglia Monitor On All Nodes\n")
         print("You are about to restart the ganglia monitor service on all the nodes.")
         confirm = input("Are you sure you want to continue (y/N)? ")
@@ -295,7 +347,7 @@ while selection:
     #
     #   Reboot all nodes
     #
-    elif selection == "8":
+    elif selection == "10":
         print("\nReboot All The Nodes\n")
         print("\nWARNING!!!\n")
         print("You are about to reboot all the nodes.")
