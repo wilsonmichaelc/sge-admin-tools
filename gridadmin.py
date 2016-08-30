@@ -51,6 +51,17 @@ def execute(command):
         out, err = proc.communicate()
         if proc.returncode != 0:
             print("Failed to execute on %! \nERROR\n%s" % (node, err))
+            
+def execute_arb(command):
+    for node in nodes:
+        print("Executing '%s' on %s" % (command, node))
+        ip = subprocess.check_output(["getent hosts %s | cut -d' ' -f1" % node], shell=True).decode('ascii').strip()
+        proc = subprocess.Popen(["ssh", "%s" % ip, command], shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = proc.communicate()
+        if proc.returncode != 0:
+            print("Failed to execute on %! \nERROR\n%s" % (node, err))
+        else:
+            print("Response: %s" % out)
 
 # Bring up the external interfaces
 def ifup():
@@ -263,7 +274,7 @@ while selection:
         print("Command: %s" % command)
         confirm = input("Are you sure you want to continue (y/N)? ")
         if confirm == "y" or confirm == "Y":
-            execute(command)
+            execute_arb(command)
             time.sleep(2)
         else:
             print("CANCELED. Returning to menu...")
